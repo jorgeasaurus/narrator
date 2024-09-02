@@ -26,36 +26,25 @@ def encode_image(image_path):
 
 def play_audio(text):
     audio = generate(text, voice=os.environ.get("ELEVENLABS_VOICE_ID"))
-
     unique_id = base64.urlsafe_b64encode(os.urandom(30)).decode("utf-8").rstrip("=")
     dir_path = os.path.join("narration", unique_id)
     os.makedirs(dir_path, exist_ok=True)
     file_path = os.path.join(dir_path, "audio.wav")
-
     with open(file_path, "wb") as f:
         f.write(audio)
-
     play(audio)
 
 
 def generate_new_line(base64_image):
-    return [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "Describe this image"},
-                {
-                    "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{base64_image}",
-                },
-            ],
-        },
-    ]
+    return {
+        "role": "user",
+        "content": f'Describe this image: ![image](data:image/jpeg;base64,{base64_image})'
+    }
 
 
 def analyze_image(base64_image, script):
     response = client.chat.completions.create(
-        model="gpt-4-vision-preview",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
@@ -66,7 +55,7 @@ def analyze_image(base64_image, script):
             },
         ]
         + script
-        + generate_new_line(base64_image),
+        + [generate_new_line(base64_image)],
         max_tokens=500,
     )
     response_text = response.choices[0].message.content
